@@ -92,12 +92,21 @@ But [@Xowap](https://github.com/Xowap) has created his own version which can be 
 ### assetManifest(options)
 
 #### options.bundleName
-Type: `String`
-Required: Yes
+Type: `String` or `Function`
+Required: No
 
-Name of the bundle for this task. 
+Name of the bundle for this task or a callback function that returns the bundle name.
+
+When using a string:
 E.g. if the tasks handles JS libraries, the bundle name could be 'js_libs'.
 If the gulp task processes all Sass files, it could be 'main_css'.
+
+When using a function:
+The callback receives two parameters:
+- `filename`: The filename without extension
+- `filepath`: The full path to the file
+
+Example with a callback:
 
 #### options.manifestFile
 Type: `String`

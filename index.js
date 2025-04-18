@@ -63,16 +63,18 @@ module.exports = function(options) {
 
     var pathPrepend = options.pathPrepend || '';
 
-    // Si bundleName n'est pas fourni, on le définira pour chaque fichier individuellement
+    // Vérifier si bundleName est fourni comme string ou callback
     var bundleNameProvided = !!options.bundleName;
+    var isBundleNameFunction = typeof options.bundleName === 'function';
 
-    if (options.log && bundleNameProvided) {
-        gutil.log('Preparing bundle:', gutil.colors.green(options.bundleName));
-    }
-
-    // On ne réinitialise le fichier manifest que si un bundleName est fourni
-    if (bundleNameProvided) {
+    // Si bundleName est une chaîne de caractères, on peut réinitialiser le fichier manifest
+    if (bundleNameProvided && !isBundleNameFunction) {
+        if (options.log) {
+            gutil.log('Preparing bundle:', gutil.colors.green(options.bundleName));
+        }
         resetManifestFile(options.bundleName, options.manifestFile);
+    } else if (isBundleNameFunction && options.log) {
+        gutil.log('Using dynamic bundle names via callback');
     }
 
     // Process files
@@ -88,12 +90,24 @@ module.exports = function(options) {
             errorMessage('Streams are not supported');
         }
 
-        // Si bundleName n'est pas fourni, utiliser le nom du fichier sans extension
-        var currentBundleName = options.bundleName;
-        if (!bundleNameProvided) {
-            // Extraire le nom du fichier sans extension
-            var fileBasename = path.basename(file.path);
-            currentBundleName = fileBasename.substring(0, fileBasename.lastIndexOf('.')) || fileBasename;
+        // Déterminer le bundleName : string, callback ou nom de fichier par défaut
+        var currentBundleName;
+        var fileBasename = path.basename(file.path);
+        var fileNameWithoutExt = fileBasename.substring(0, fileBasename.lastIndexOf('.')) || fileBasename;
+
+        if (typeof options.bundleName === 'function') {
+            // Si bundleName est une fonction, l'appeler avec le nom du fichier
+            currentBundleName = options.bundleName(fileNameWithoutExt, file.path);
+
+            if (options.log) {
+                gutil.log('Using callback for bundle name:', gutil.colors.green(currentBundleName));
+            }
+        } else if (bundleNameProvided) {
+            // Si bundleName est une chaîne de caractères
+            currentBundleName = options.bundleName;
+        } else {
+            // Si bundleName n'est pas fourni, utiliser le nom du fichier sans extension
+            currentBundleName = fileNameWithoutExt;
 
             if (options.log) {
                 gutil.log('Using filename as bundle:', gutil.colors.green(currentBundleName));
