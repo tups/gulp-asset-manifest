@@ -63,16 +63,17 @@ module.exports = function(options) {
 
     var pathPrepend = options.pathPrepend || '';
 
-    if(!options.bundleName){
-        errorMessage('A bundle name is required. Please refer to the docs.');
-    }
+    // Si bundleName n'est pas fourni, on le définira pour chaque fichier individuellement
+    var bundleNameProvided = !!options.bundleName;
 
-    if (options.log) {
+    if (options.log && bundleNameProvided) {
         gutil.log('Preparing bundle:', gutil.colors.green(options.bundleName));
     }
 
-    // Reset asset file
-    resetManifestFile(options.bundleName, options.manifestFile);
+    // On ne réinitialise le fichier manifest que si un bundleName est fourni
+    if (bundleNameProvided) {
+        resetManifestFile(options.bundleName, options.manifestFile);
+    }
 
     // Process files
     return map(function(file, callback) {
@@ -85,6 +86,18 @@ module.exports = function(options) {
         // Emit error for streams
         if (file.isStream()) {
             errorMessage('Streams are not supported');
+        }
+
+        // Si bundleName n'est pas fourni, utiliser le nom du fichier sans extension
+        var currentBundleName = options.bundleName;
+        if (!bundleNameProvided) {
+            // Extraire le nom du fichier sans extension
+            var fileBasename = path.basename(file.path);
+            currentBundleName = fileBasename.substring(0, fileBasename.lastIndexOf('.')) || fileBasename;
+
+            if (options.log) {
+                gutil.log('Using filename as bundle:', gutil.colors.green(currentBundleName));
+            }
         }
 
         // Read asset file contents
@@ -108,17 +121,17 @@ module.exports = function(options) {
         }
 
         // Add filename to fileList
-        if (!fileList[options.bundleName]){
-            fileList[options.bundleName] = [];
+        if (!fileList[currentBundleName]){
+            fileList[currentBundleName] = [];
         }
 
-        fileList[options.bundleName].push(pathPrepend + filename);
+        fileList[currentBundleName].push(pathPrepend + filename);
 
         // Write list to asset file
         writeManifestFile(fileList, options.manifestFile);
 
         if (options.log) {
-            gutil.log('Added', gutil.colors.green(filename), 'to asset manifest.');
+            gutil.log('Added', gutil.colors.green(filename), 'to asset manifest with bundle:', gutil.colors.green(currentBundleName));
         }
 
         callback(null, file);
