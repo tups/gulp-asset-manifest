@@ -67,14 +67,17 @@ module.exports = function(options) {
     var bundleNameProvided = !!options.bundleName;
     var isBundleNameFunction = typeof options.bundleName === 'function';
 
-    // Si bundleName est une chaîne de caractères, on peut réinitialiser le fichier manifest
+    // Option pour réinitialiser le manifeste (par défaut à true)
+    options.resetManifest = options.resetManifest !== false;
+    
+    // Réinitialiser le fichier manifest si bundleName est une chaîne de caractères
     if (bundleNameProvided && !isBundleNameFunction) {
         if (options.log) {
             gutil.log('Preparing bundle:', gutil.colors.green(options.bundleName));
         }
-        resetManifestFile(options.bundleName, options.manifestFile);
-    } else if (isBundleNameFunction && options.log) {
-        gutil.log('Using dynamic bundle names via callback');
+        if (options.resetManifest) {
+            resetManifestFile(options.bundleName, options.manifestFile);
+        }
     }
 
     // Process files
@@ -98,6 +101,10 @@ module.exports = function(options) {
         if (typeof options.bundleName === 'function') {
             // Si bundleName est une fonction, l'appeler avec le nom du fichier
             currentBundleName = options.bundleName(fileNameWithoutExt, file.path);
+            
+            if (options.resetManifest) {
+                resetManifestFile(currentBundleName, options.manifestFile);
+            }
 
             if (options.log) {
                 gutil.log('Using callback for bundle name:', gutil.colors.green(currentBundleName));
